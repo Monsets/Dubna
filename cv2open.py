@@ -1,20 +1,25 @@
-from imutils.video import VideoStream
 import argparse
-import datetime
 import imutils
 import time
+import numpy as np
 import cv2
+
+from imutils.video import VideoStream
+from utils import construct_arguments, point_in_box
+from boxes import lower_box, upper_box
 
 x_min = 279
 y_max = 518
 x_max = 517
 y_min = 320
 
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-v", "--video", help="path to the video file")
-ap.add_argument("-a", "--min-area", type=int, default=500, help="minimum area size")
-args = vars(ap.parse_args())
+
+passanger_is_coming = False
+passangers_count = 0
+
+args = construct_arguments()
+
+debugging = args.get('debugging')
 
 # if the video argument is None, then we are reading from webcam
 if args.get("video", None) is None:
@@ -34,7 +39,6 @@ while True:
     # text
     frame = vs.read()
     frame = frame if args.get("video", None) is None else frame[1]
-    text = "Unoccupied"
 
     # if the frame could not be grabbed, then we have reached the end
     # of the video
@@ -44,7 +48,7 @@ while True:
     # resize the frame, convert it to grayscale, and blur it
     frame = frame[y_min:y_max, x_min: x_max]
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+   # gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
     if firstFrame is None:
         firstFrame = gray
@@ -57,13 +61,17 @@ while True:
 
     # dilate the thresholded image to fill in holes, then find contours
     # on thresholded image
-    thresh = cv2.dilate(thresh, None, iterations=2)
+    thresh = cv2.dilate(thresh, None, iterations=4)
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
                             cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
 
+
+
     # loop over the contours
     for c in cnts:
+
+        c = np.array(c)
         # if the contour is too small, ignore it
         if cv2.contourArea(c) < args["min_area"]:
             continue
@@ -71,8 +79,29 @@ while True:
         # compute the bounding box for the contour, draw it on the frame,
         # and update the text
         (x, y, w, h) = cv2.boundingRect(c)
+
+        #if detection observed in lower box
+        if point_in_box((x + (w / 2), y + (h / 2)), lower_box):
+            passanger_is_coming = True
+
+            if debugging:
+                print('he is coming ')
+
+        #in upper box and hes coming
+        if passanger_is_coming and  point_in_box((x + (w / 2), y + (h/ 2)), upper_box):
+            passangers_count += 1
+            passanger_is_coming = False
+
+            if debugging:
+                print('he\' s came')
+
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        text = "Occupied"
+
+
+    if debugging:
+        #printing lower and upper boxes
+        cv2.rectangle(frame, lower_box['start'], lower_box['end'], (0, 0, 255), 2)
+        cv2.rectangle(frame, upper_box['start'], upper_box['end'], (255, 0, 0), 2)
 
     # show the frame and record if the user presses a key
     cv2.imshow("Thresh", thresh)
@@ -82,13 +111,17 @@ while True:
 
     firstFrame = gray
 
-    time.sleep(.5)
+    time.sleep(.2)
 
     # if the `q` key is pressed, break from the lop
-
     if key == ord("q"):
         break
+
+    #s key to stop video
+    if key == ord('s'):
+        time.sleep(10)
 
 # cleanup the camera and close any open windows
 vs.stop() if args.get("video", None) is None else vs.release()
 cv2.destroyAllWindows()
+print(passangers_count)
