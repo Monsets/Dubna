@@ -95,7 +95,7 @@ while True:
             if debugging:
                 print('he\' s came')
 
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
 
     if debugging:
