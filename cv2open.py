@@ -48,7 +48,7 @@ while True:
     # resize the frame, convert it to grayscale, and blur it
     frame = frame[y_min:y_max, x_min: x_max]
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-   # gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    #gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
     if firstFrame is None:
         firstFrame = gray
@@ -61,7 +61,7 @@ while True:
 
     # dilate the thresholded image to fill in holes, then find contours
     # on thresholded image
-    thresh = cv2.dilate(thresh, None, iterations=4)
+    thresh = cv2.dilate(thresh, None, iterations=8)
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
                             cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
@@ -103,23 +103,26 @@ while True:
         cv2.rectangle(frame, lower_box['start'], lower_box['end'], (0, 0, 255), 2)
         cv2.rectangle(frame, upper_box['start'], upper_box['end'], (255, 0, 0), 2)
 
-    # show the frame and record if the user presses a key
-    cv2.imshow("Thresh", thresh)
-    cv2.imshow("Frame Delta", frameDelta)
-    cv2.imshow("Security Feed", frame)
-    key = cv2.waitKey(1) & 0xFF
+        # show the frame and record if the user presses a key
+        cv2.imshow("Thresh", thresh)
+        cv2.imshow("Frame Delta", frameDelta)
+        cv2.moveWindow('Frame Delta', 500, 20)
+        cv2.imshow("Security Feed", frame)
+        cv2.moveWindow('Security Feed', 800, 20)
+        key = cv2.waitKey(1) & 0xFF
+
+        # if the `q` key is pressed, break from the lop
+        if key == ord("q"):
+            break
+
+        #s key to stop video
+        if key == ord('s'):
+            time.sleep(10)
+
+        time.sleep(.2)
+
 
     firstFrame = gray
-
-    time.sleep(.2)
-
-    # if the `q` key is pressed, break from the lop
-    if key == ord("q"):
-        break
-
-    #s key to stop video
-    if key == ord('s'):
-        time.sleep(10)
 
 # cleanup the camera and close any open windows
 vs.stop() if args.get("video", None) is None else vs.release()
