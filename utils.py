@@ -13,7 +13,7 @@ def construct_arguments():
     return args
 
 def point_in_box(point, box):
-    if point[0] > box['start'][0] and point[0] < box['end'][0] and \
-        point[1] > box['start'][1] and point[1] < box['end'][1]:
+    if point[0] + 10 > box['start'][0] and point[0] - 10 < box['end'][0] and \
+        point[1] + 10 > box['start'][1] and point[1] - 10 < box['end'][1]:
         return True
     return  False
