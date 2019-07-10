@@ -1,17 +1,20 @@
-import argparse
+import json
 import imutils
 import time
 import numpy as np
 import cv2
 
-from imutils.video import VideoStream
 from utils import construct_arguments, point_in_box
 from boxes import lower_box, upper_box
 
 x_min = 279
-y_max = 518
+y_max = 500
 x_max = 517
 y_min = 320
+
+with open('answers.json') as f:
+    files = json.load(f)
+
 
 
 passanger_is_coming = False
@@ -23,8 +26,10 @@ debugging = args.get('debugging')
 
 # if the video argument is None, then we are reading from webcam
 if args.get("video", None) is None:
-    vs = VideoStream(src=0).start()
+    #vs = VideoStream(src=0).start()
     time.sleep(2.0)
+    print("Specify video (-v path)")
+    exit(1)
 
 # otherwise, we are reading from a video file
 else:
@@ -48,7 +53,8 @@ while True:
     # resize the frame, convert it to grayscale, and blur it
     frame = frame[y_min:y_max, x_min: x_max]
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    #gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    #gray = cv2.convertScaleAbs(gray)
 
     if firstFrame is None:
         firstFrame = gray
@@ -57,21 +63,22 @@ while True:
     # compute the absolute difference between the current frame and
     # first frame
     frameDelta = cv2.absdiff(firstFrame, gray)
-    thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(frameDelta, 15, 255, cv2.THRESH_BINARY)[1]
 
     # dilate the thresholded image to fill in holes, then find contours
     # on thresholded image
-    thresh = cv2.dilate(thresh, None, iterations=8)
+    thresh = cv2.dilate(thresh, None, iterations=30)
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
                             cv2.CHAIN_APPROX_SIMPLE)
+
+    #not supported on jupiter
     cnts = imutils.grab_contours(cnts)
-
-
 
     # loop over the contours
     for c in cnts:
-
-        c = np.array(c)
+        #epsilon = cv2.arcLength(c, True)
+        #approx = cv2.approxPolyDP(c, 2, True)
+        #c = np.array(c)
         # if the contour is too small, ignore it
         if cv2.contourArea(c) < args["min_area"]:
             continue
@@ -95,7 +102,7 @@ while True:
             if debugging:
                 print('he\' s came')
 
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
 
     if debugging:
@@ -119,7 +126,7 @@ while True:
         if key == ord('s'):
             time.sleep(10)
 
-        time.sleep(.2)
+        time.sleep(.01)
 
 
     firstFrame = gray
